@@ -56,5 +56,75 @@ It supports local audio playback, real-time waveform rendering, idle animation, 
 
 ---
 
-## 📂 Project Structure
+## 📄 License
 
+This project is provided as-is for learning, experimentation, and personal or commercial use.  
+No external libraries or assets are required.
+
+---
+
+# 사운드 웨이브 시각화 (HTML5 + Web Audio API)
+
+**HTML5 Canvas**와 **Web Audio API**만을 사용해 구현한  
+가볍고 의존성 없는 오디오 플레이어 + 파형 시각화 예제입니다.
+
+로컬 오디오 재생, 실시간 파형 렌더링, idle 물결 애니메이션,  
+그리고 스펙트럼 스타일 커스터마이징 기능을 포함합니다.
+
+---
+
+## ✨ 주요 기능
+
+- 🎵 **로컬 오디오 재생**
+  - 드래그 & 드롭 또는 파일 선택
+  - `mp3`, `wav`, `m4a` 등 일반적인 오디오 포맷 지원
+
+- 🌊 **실시간 파형 시각화**
+  - `<canvas>` 기반 시간 영역(Time Domain) 파형
+  - `requestAnimationFrame` 기반 부드러운 애니메이션
+
+- 💤 **Idle 상태 물결 애니메이션**
+  - 재생 중이 아닐 때도 잔잔한 물결 표시
+  - HTML 최초 로드 시점부터 표시됨
+
+- 🎨 **스펙트럼 스타일 설정**
+  - 파형 **색상 / 투명도 / 두께** 실시간 변경
+  - 기본값으로 즉시 초기화 가능
+  - 다크 모드 자동 대응 기본 색상
+
+- 🔊 **볼륨과 파형 분석 분리**
+  - 볼륨을 조절해도 파형 분석에는 영향 없음
+  - `AnalyserNode`를 GainNode 앞단에 배치
+
+- 📱 **반응형 & 고해상도 대응**
+  - 디바이스 픽셀 비율(DPR) 자동 처리
+  - 창 크기 변경 시 자동 리사이즈
+
+---
+
+## 🚀 사용 방법
+
+1. `sound-visualization.html` 파일을 브라우저에서 열기
+2. 오디오 파일을 드래그 & 드롭 (또는 파일 선택)
+3. **재생** 버튼 클릭
+4. 볼륨 조절 및 파형 스타일 설정
+
+> ⚠️ 브라우저 정책상 오디오 재생과 AudioContext는  
+> 반드시 사용자 동작(버튼 클릭 등) 이후에 활성화됩니다.
+
+---
+
+## 🛠️ 사용 기술
+
+- HTML5
+- CSS (프레임워크 없음)
+- JavaScript (Vanilla)
+- Web Audio API
+- Canvas API
+
+---
+
+## 📄 라이선스
+
+본 프로젝트는 학습, 실험, 개인/상업적 용도로 자유롭게 사용할 수 있습니다.  
+외부 라이브러리나 리소스에 의존하지 않습니다.
