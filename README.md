@@ -3,9 +3,10 @@
 A lightweight, dependency-free audio player and waveform visualizer built with **HTML5 Canvas** and the **Web Audio API**.  
 It supports local audio playback, real-time waveform rendering, idle animation, and customizable spectrum styles.
 
+---
+
 <details>
   <summary><strong>English (Click to expand)</strong></summary>
----
 
 ## ✨ Features
 
