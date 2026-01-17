@@ -35,12 +35,7 @@ It supports local audio playback, real-time waveform rendering, idle animation, 
   - Automatically scales for device pixel ratio
   - Adapts to window resizing
 
-</details>
-
 ---
-
-<details>
-  <summary><strong>한국어 (펼치기/접기)</strong></summary>
 
 ## 🚀 How to Use
 
@@ -69,7 +64,12 @@ It supports local audio playback, real-time waveform rendering, idle animation, 
 This project is provided as-is for learning, experimentation, and personal or commercial use.  
 No external libraries or assets are required.
 
+</details>
+
 ---
+
+<details>
+  <summary><strong>한국어 (펼치기/접기)</strong></summary>
 
 # 사운드 웨이브 시각화 (HTML5 + Web Audio API)
 
