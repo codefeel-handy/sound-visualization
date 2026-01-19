@@ -6,7 +6,13 @@
   <title>Sound Wave (HTML5 + Web Audio API)</title>
   <style>
     :root { color-scheme: light dark; }
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", sans-serif; margin: 24px; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", sans-serif;
+      margin: 24px;
+      /* [요청 반영] 페이지 배경 흰색 고정 */
+      background: #fff;
+      color: #111;
+    }
     .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
     .panel { border: 1px solid rgba(128,128,128,.35); border-radius: 12px; padding: 16px; max-width: 920px; }
     .drop {
@@ -45,6 +51,25 @@
     .spec input[type="color"] { width: 44px; height: 30px; padding: 0; border: 1px solid rgba(128,128,128,.35); border-radius: 8px; background: transparent; }
     .spec .mini { width: 140px; }
     .spec .btnMini { padding: 8px 10px; border-radius: 10px; }
+
+
+    /* =========================
+       [추가] 폴더 플레이리스트 UI
+       ========================= */
+    .playlistWrap{ margin-top: 14px; text-align: left; border-top: 1px dashed rgba(128,128,128,.35); padding-top: 14px; }
+    .playlistHeader{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content: space-between; margin-bottom: 10px; }
+    .playlistTitle{ font-weight: 700; font-size: 14px; opacity: .95; }
+    .playlistTools{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .playlistTools input[type="text"],
+    .playlistTools select{ padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(128,128,128,.35); background: transparent; }
+    .playlistTools input[type="text"]{ width: 220px; }
+    .playlistBox{ border: 1px solid rgba(128,128,128,.25); border-radius: 12px; padding: 10px; background: rgba(0,0,0,.02); max-height: 220px; overflow: auto; }
+    .plist{ list-style: none; padding: 0; margin: 0; display:flex; flex-direction: column; gap: 6px; }
+    .plistItemBtn{ width: 100%; text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(128,128,128,.25); background: transparent; cursor: pointer; display:flex; gap:10px; align-items: baseline; justify-content: space-between; }
+    .plistItemBtn:hover{ border-color: rgba(0,150,255,.55); background: rgba(0,150,255,.06); }
+    .plistItemBtn.active{ border-color: rgba(0,150,255,.9); background: rgba(0,150,255,.10); }
+    .trackName{ font-size: 13px; font-weight: 600; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 62%; }
+    .trackInfo{ font-size: 12px; opacity: .7; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 55%; }
   </style>
 </head>
 <body>
@@ -56,11 +81,38 @@
       <div class="small">또는 아래에서 파일 선택 (mp3, wav, m4a 등)</div>
       <div class="spacer"></div>
       <input id="file" type="file" accept="audio/*" />
+
+      <!-- =========================
+           [추가] 폴더 선택 → 플레이리스트(검색/정렬 포함)
+           ========================= -->
+      <div class="playlistWrap" aria-label="폴더 플레이리스트">
+        <div class="playlistHeader">
+          <div class="playlistTitle">플레이리스트</div>
+          <div class="playlistTools">
+            <button id="btnPickFolder" type="button">폴더 선택</button>
+            <input id="folder" type="file" webkitdirectory directory multiple hidden />
+            <input id="plistSearch" type="text" placeholder="검색: 파일명/폴더" />
+            <select id="plistSort" aria-label="정렬">
+              <option value="name" selected>이름순</option>
+              <option value="folder">폴더순</option>
+              <option value="recent">최근순</option>
+            </select>
+          </div>
+        </div>
+        <div class="playlistBox">
+          <ul id="playlist" class="plist" aria-label="플레이리스트 목록">
+            <li class="small" id="plistEmpty">폴더를 선택하면 목록이 표시됩니다.</li>
+          </ul>
+        </div>
+      </div>
+      <!-- ========================= -->
     </div>
 
     <div class="spacer"></div>
 
     <div class="row">
+      <button id="btnPrev" disabled>이전</button>
+      <button id="btnNext" disabled>다음</button>
       <button id="btnPlay" disabled>재생</button>
       <button id="btnPause" disabled>일시정지</button>
       <button id="btnStop" disabled>정지</button>
@@ -87,10 +139,19 @@
 
     <div class="spacer"></div>
 
-    /* 스펙트럼 색상 변경 */
-
     <!-- [추가] 스펙트럼(파형) 색상 변경 UI -->
     <div class="spec" aria-label="스펙트럼 색상 설정">
+
+      <!-- [요청 반영] 색상 좌측에 canvas 배경색 변경 기능 + Default(흰색) 기능 -->
+      <label>
+        Chroma Green
+        <select id="bgChroma" class="mini" aria-label="canvas 배경(크로마키) 선택">
+          <option value="default" selected>Default</option>
+          <option value="pure">Standard</option>
+          <option value="work">Broadcast</option>
+        </select>
+      </label>
+
       <label>
         색상
         <input id="specColor" type="color" value="#0078ff" />
@@ -131,6 +192,177 @@
   const btnPlay = $("btnPlay");
   const btnPause = $("btnPause");
   const btnStop = $("btnStop");
+  const btnPrev = $("btnPrev");
+  const btnNext = $("btnNext");
+
+  /* =========================
+     [추가] 플레이리스트(폴더/검색/정렬)
+     ========================= */
+  const btnPickFolder = $("btnPickFolder");
+  const folderInput = $("folder");
+  const playlistEl = $("playlist");
+  const plistEmpty = $("plistEmpty");
+  const plistSearch = $("plistSearch");
+  const plistSort = $("plistSort");
+
+  let playlistFiles = [];      /* 현재 플레이리스트의 원본 파일 목록 */
+  let viewFiles = [];          /* 검색/정렬 적용 후 표시되는 목록 */
+  let currentIndex = -1;       /* viewFiles 기준 현재 곡 인덱스 */
+  let searchTerm = "";
+  let sortMode = "name";
+
+  function isAudioFile(file) {
+    if (!file) return false;
+    if (file.type && file.type.startsWith("audio/")) return true;
+    const name = String(file.name || "").toLowerCase();
+    return /\.(mp3|wav|m4a|aac|flac|ogg|opus|webm)$/i.test(name);
+  }
+
+  function relPath(file) {
+    return file?.webkitRelativePath ? String(file.webkitRelativePath) : String(file?.name || "");
+  }
+
+  function formatBytes(bytes) {
+    const b = Number(bytes) || 0;
+    if (b < 1024) return `${b} B`;
+    const kb = b / 1024;
+    if (kb < 1024) return `${kb.toFixed(1)} KB`;
+    const mb = kb / 1024;
+    if (mb < 1024) return `${mb.toFixed(1)} MB`;
+    const gb = mb / 1024;
+    return `${gb.toFixed(2)} GB`;
+  }
+
+  function applySearchSort() {
+    const term = searchTerm.trim().toLowerCase();
+    let arr = playlistFiles.slice();
+
+    if (term) {
+      arr = arr.filter(f => {
+        const name = String(f.name || "").toLowerCase();
+        const path = relPath(f).toLowerCase();
+        return name.includes(term) || path.includes(term);
+      });
+    }
+
+    if (sortMode === "name") {
+      arr.sort((a,b) => String(a.name||"").toLowerCase().localeCompare(String(b.name||"").toLowerCase()));
+    } else if (sortMode === "folder") {
+      arr.sort((a,b) => relPath(a).toLowerCase().localeCompare(relPath(b).toLowerCase()));
+    } else if (sortMode === "recent") {
+      /* lastModified: 최근 수정 파일 우선 */
+      arr.sort((a,b) => (Number(b.lastModified)||0) - (Number(a.lastModified)||0));
+    }
+
+    viewFiles = arr;
+
+    /* currentIndex 재매핑(현재 재생 중 파일이 view에 남아있으면 유지) */
+    const curFile = (currentIndex >= 0 && currentIndex < viewFiles.length) ? viewFiles[currentIndex] : null;
+    let playingFile = null;
+    if (audio && audio.src && audio.src.startsWith("blob:")) {
+      /* 현재 로드된 파일을 fileName 텍스트로 추정 */
+      const currentName = String(fileName?.textContent || "");
+      playingFile = playlistFiles.find(f => f.name === currentName) || null;
+    }
+    if (playingFile) {
+      const newIdx = viewFiles.indexOf(playingFile);
+      currentIndex = newIdx;
+    }
+
+    renderPlaylist();
+  }
+
+  function renderPlaylist() {
+    if (!playlistEl) return;
+    playlistEl.innerHTML = "";
+
+    if (!viewFiles || viewFiles.length === 0) {
+      const li = document.createElement("li");
+      li.className = "small";
+      li.id = "plistEmpty";
+      li.textContent = playlistFiles.length ? "검색 결과가 없습니다." : "폴더를 선택하면 목록이 표시됩니다.";
+      playlistEl.appendChild(li);
+      return;
+    }
+
+    viewFiles.forEach((f, idx) => {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "plistItemBtn";
+      btn.dataset.index = String(idx);
+
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "trackName";
+      nameSpan.textContent = f.name;
+
+      const infoSpan = document.createElement("span");
+      infoSpan.className = "trackInfo";
+      infoSpan.textContent = `${relPath(f)} · ${formatBytes(f.size)} · ${(f.type||"audio")}`;
+
+      btn.appendChild(nameSpan);
+      btn.appendChild(infoSpan);
+
+      btn.addEventListener("click", () => {
+        startTrackAt(idx, true);
+      });
+
+      li.appendChild(btn);
+      playlistEl.appendChild(li);
+    });
+
+    markActiveTrack();
+  }
+
+  function markActiveTrack() {
+    if (!playlistEl) return;
+    const buttons = playlistEl.querySelectorAll("button[data-index]");
+    buttons.forEach((b) => {
+      const idx = Number(b.dataset.index);
+      if (Number.isFinite(idx) && idx === currentIndex) b.classList.add("active");
+      else b.classList.remove("active");
+    });
+
+    const hasList = viewFiles && viewFiles.length > 0;
+    const hasPrev = hasList && currentIndex > 0;
+    const hasNext = hasList && currentIndex >= 0 && currentIndex < viewFiles.length - 1;
+    if (btnPrev) btnPrev.disabled = !hasPrev;
+    if (btnNext) btnNext.disabled = !hasNext;
+  }
+
+  async function startTrackAt(idx, autoPlay) {
+    if (!viewFiles || idx < 0 || idx >= viewFiles.length) return;
+    currentIndex = idx;
+    loadFile(viewFiles[currentIndex]);
+    markActiveTrack();
+
+    if (autoPlay) {
+      ensureAudioGraph();
+      if (audioCtx?.state === "suspended") await audioCtx.resume();
+      try {
+        await audio.play();
+        setState("재생 중");
+        startDrawing();
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+  }
+
+  function playPrev() {
+    if (!viewFiles || viewFiles.length === 0) return;
+    if (currentIndex <= 0) return;
+    startTrackAt(currentIndex - 1, true);
+  }
+
+  function playNext() {
+    if (!viewFiles || viewFiles.length === 0) return;
+    if (currentIndex < 0) return;
+    if (currentIndex >= viewFiles.length - 1) return;
+    startTrackAt(currentIndex + 1, true);
+  }
+  /* ========================= */
+
 
   const volume = $("volume");
   const volText = $("volText");
@@ -151,6 +383,13 @@
   const specWidth = $("specWidth");
   const specWidthText = $("specWidthText");
   const specReset = $("specReset");
+
+  /* --- [요청 반영] canvas 배경색 변경 컨트롤 (Default=흰색 추가) --- */
+  const bgChroma = $("bgChroma");
+  const BG_DEFAULT = "rgb(255,255,255)"; /* [추가] Default: 흰색 */
+  const CHROMA_PURE = "rgb(0,255,0)";    /* 1) 완전 녹색 */
+  const CHROMA_WORK = "rgb(0,170,0)";    /* 2) 작업용: 0,170,0 */
+  let userCanvasBg = BG_DEFAULT;
 
   /* 기본값(기존 코드의 색상값을 기준으로) */
   const DEFAULT_LIGHT_COLOR = "#0078ff"; /* rgba(0,120,255,.95) 근사 */
@@ -243,6 +482,14 @@
     return `rgba(${r},${g},${b},${a})`;
   }
 
+  function getCanvasBgFillStyle() {
+    /* [요청 반영] Default 기능 추가: default=흰색 */
+    const v = bgChroma ? String(bgChroma.value) : "default";
+    if (v === "default") return BG_DEFAULT;
+    if (v === "pure") return CHROMA_PURE;
+    return CHROMA_WORK; /* work */
+  }
+
   /* --- [요청 반영] idle(최초 로드/재생 중 아님) 상태일 때 물결 애니메이션 표시 --- */
   function isIdleState() {
     /* 오디오가 재생 중이 아니면 idle로 간주 (최초 로드 포함) */
@@ -283,7 +530,7 @@
     const h = canvas.height;
 
     /* 배경 */
-    ctx.fillStyle = (matchMedia("(prefers-color-scheme: dark)").matches) ? "#0b0f14" : "#ffffff";
+    ctx.fillStyle = getCanvasBgFillStyle();
     ctx.fillRect(0, 0, w, h);
 
     const idle = isIdleState();
@@ -364,6 +611,13 @@
     setState("로딩");
 
     enableControls(true);
+
+    /* [추가] 로드한 파일이 플레이리스트(view)에 있으면 현재 인덱스 동기화 */
+    if (playlistFiles && playlistFiles.length) {
+      const idx = viewFiles.indexOf(file);
+      if (idx >= 0) currentIndex = idx;
+      markActiveTrack();
+    }
   }
 
   /* --- Audio elements / nodes --- */
@@ -384,6 +638,47 @@
     const f = e.target.files?.[0];
     loadFile(f);
   });
+
+
+  /* =========================
+     [추가] 폴더 선택 → 플레이리스트 구성(선택 즉시 목록 표시)
+     ========================= */
+  if (btnPickFolder && folderInput) {
+    btnPickFolder.addEventListener("click", () => {
+      /* webkitdirectory: 브라우저가 파일 접근 허용을 위해 확인 팝업을 표시할 수 있으며 코드로 제거 불가 */
+      folderInput.click();
+    });
+
+    folderInput.addEventListener("change", (e) => {
+      const files = Array.from(e.target.files || []);
+      playlistFiles = files.filter(isAudioFile);
+      searchTerm = "";
+      sortMode = plistSort ? String(plistSort.value || "name") : "name";
+      if (plistSearch) plistSearch.value = "";
+      applySearchSort();
+      /* 목록만 만들고 자동 재생은 하지 않음(사용자 선택) */
+      currentIndex = -1;
+      markActiveTrack();
+    });
+  }
+
+  if (plistSearch) {
+    plistSearch.addEventListener("input", () => {
+      searchTerm = String(plistSearch.value || "");
+      applySearchSort();
+    });
+  }
+
+  if (plistSort) {
+    plistSort.addEventListener("change", () => {
+      sortMode = String(plistSort.value || "name");
+      applySearchSort();
+    });
+  }
+
+  if (btnPrev) btnPrev.addEventListener("click", playPrev);
+  if (btnNext) btnNext.addEventListener("click", playNext);
+  /* ========================= */
 
   /* drag & drop */
   ["dragenter", "dragover"].forEach(ev => {
@@ -467,6 +762,14 @@
 
   audio.addEventListener("ended", () => {
     setState("재생 완료");
+
+    /* =========================
+       [추가] (1) 재생 완료 시 자동으로 다음 곡 재생
+       ========================= */
+    if (viewFiles && viewFiles.length > 0 && currentIndex >= 0 && currentIndex < viewFiles.length - 1) {
+      playNext();
+    }
+    /* ========================= */
   });
 
   /* --- [추가] 스펙트럼(파형) 색상 변경 이벤트 --- */
@@ -482,6 +785,14 @@
     syncSpecUiText();
   }
 
+  /* [요청 반영] 배경 선택 변경 시 즉시 반영 */
+  function applyBgFromUi() {
+    const v = bgChroma ? String(bgChroma.value) : "default";
+    if (v === "default") userCanvasBg = BG_DEFAULT;
+    else if (v === "pure") userCanvasBg = CHROMA_PURE;
+    else userCanvasBg = CHROMA_WORK;
+  }
+
   /* 최초: 현재 모드에 맞는 기본 색상으로 UI 초기화 */
   (() => {
     const isDark = matchMedia("(prefers-color-scheme: dark)").matches;
@@ -489,6 +800,10 @@
     specAlpha.value = String(DEFAULT_ALPHA);
     specWidth.value = String(DEFAULT_WIDTH);
     applySpecFromUi();
+
+    /* [요청 반영] 배경 기본값: Default(흰색) */
+    if (bgChroma) bgChroma.value = "default";
+    applyBgFromUi();
 
     /* 모드가 바뀌면(예: OS 테마 전환) 사용자가 직접 바꾼 값이 없을 때만 기본값을 반영하기 위해
        여기서는 자동 덮어쓰지는 하지 않습니다(사용자 설정 우선). */
@@ -505,6 +820,8 @@
     specWidth.value = String(DEFAULT_WIDTH);
     applySpecFromUi();
   });
+
+  if (bgChroma) bgChroma.addEventListener("change", applyBgFromUi);
 
   window.addEventListener("resize", () => resizeCanvasToDisplaySize());
   resizeCanvasToDisplaySize();
